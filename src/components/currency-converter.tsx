@@ -33,6 +33,10 @@ type Conversion = {
 
 const HISTORY_KEY = "currencyx-history-v1";
 
+function CurrencyFlag({ country, label, className }: { country: string; label: string; className?: string }) {
+  return <span role="img" aria-label={label} className={cn("fi shrink-0 rounded-sm", `fi-${country}`, className)} />;
+}
+
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
@@ -61,7 +65,7 @@ function ThemeToggle() {
 function Header() {
   return (
     <header className="border-b border-border/70 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:h-18 sm:px-6 lg:px-8">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:h-18 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-action">
             <CircleDollarSign size={21} strokeWidth={2.4} />
@@ -73,7 +77,7 @@ function Header() {
           <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#rates">Rates</a>
           <a className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" href="#history">History</a>
         </nav>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center justify-end gap-1">
           <ThemeToggle />
           <Button variant="ghost" className="size-10 px-0" aria-label="Settings"><Settings size={19} /></Button>
         </div>
@@ -129,7 +133,7 @@ function CurrencySelector({ label, value, onChange }: { label: string; value: st
         onClick={() => setOpen((current) => !current)}
       >
         <span className="flex min-w-0 items-center gap-3">
-          <span className="text-2xl" aria-hidden="true">{selected.flag}</span>
+          <CurrencyFlag country={selected.flag} label={`${selected.name} flag`} className="text-2xl" />
           <span className="min-w-0">
             <span className="block text-sm font-bold text-foreground">{selected.code}</span>
             <span className="block truncate text-xs font-normal text-muted-foreground">{selected.name}</span>
@@ -147,7 +151,7 @@ function CurrencySelector({ label, value, onChange }: { label: string; value: st
           <div className="mt-1 max-h-64 overflow-y-auto" role="listbox">
             {filtered.map((currency) => (
               <Button key={currency.code} variant="ghost" role="option" aria-selected={currency.code === value} className="h-auto w-full justify-start px-2 py-2.5 text-left" onClick={() => { onChange(currency.code); setOpen(false); setQuery(""); }}>
-                <span className="text-xl">{currency.flag}</span>
+                <CurrencyFlag country={currency.flag} label={`${currency.name} flag`} className="text-xl" />
                 <span className="min-w-0 flex-1"><span className="font-bold text-foreground">{currency.code}</span><span className="ml-2 truncate font-normal text-muted-foreground">{currency.name}</span></span>
                 {currency.code === value && <Check size={16} className="text-primary" />}
               </Button>
@@ -255,7 +259,7 @@ function PopularCurrencies({ snapshot, refreshing, onRefresh }: { snapshot: Rate
           const currency = getCurrency(code);
           return (
             <article key={code} className="rounded-lg border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card">
-              <div className="flex items-center justify-between"><span className="text-2xl">{currency.flag}</span><TrendingUp size={16} className="text-success" /></div>
+              <div className="flex items-center justify-between"><CurrencyFlag country={currency.flag} label={`${currency.name} flag`} className="text-2xl" /><TrendingUp size={16} className="text-success" /></div>
               <div className="mt-4 flex items-end justify-between gap-2"><div className="min-w-0"><h3 className="font-bold">{currency.code}</h3><p className="truncate text-xs text-muted-foreground">{currency.name}</p></div><p className="shrink-0 text-sm font-bold">{formatRate(snapshot.rates[code] ?? 0)}</p></div>
             </article>
           );

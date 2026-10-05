@@ -6,18 +6,18 @@ export type Currency = {
 };
 
 export const currencies: Currency[] = [
-  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
-  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
-  { code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧" },
-  { code: "INR", name: "Indian Rupee", symbol: "₹", flag: "🇮🇳" },
-  { code: "JPY", name: "Japanese Yen", symbol: "¥", flag: "🇯🇵" },
-  { code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
-  { code: "CAD", name: "Canadian Dollar", symbol: "C$", flag: "🇨🇦" },
-  { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
-  { code: "CHF", name: "Swiss Franc", symbol: "CHF", flag: "🇨🇭" },
-  { code: "CNY", name: "Chinese Yuan", symbol: "¥", flag: "🇨🇳" },
-  { code: "SGD", name: "Singapore Dollar", symbol: "S$", flag: "🇸🇬" },
-  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$", flag: "🇳🇿" },
+  { code: "USD", name: "US Dollar", symbol: "$", flag: "us" },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "eu" },
+  { code: "GBP", name: "British Pound", symbol: "£", flag: "gb" },
+  { code: "INR", name: "Indian Rupee", symbol: "₹", flag: "in" },
+  { code: "JPY", name: "Japanese Yen", symbol: "¥", flag: "jp" },
+  { code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "au" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "C$", flag: "ca" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "ae" },
+  { code: "CHF", name: "Swiss Franc", symbol: "CHF", flag: "ch" },
+  { code: "CNY", name: "Chinese Yuan", symbol: "¥", flag: "cn" },
+  { code: "SGD", name: "Singapore Dollar", symbol: "S$", flag: "sg" },
+  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$", flag: "nz" },
 ];
 
 export const popularCurrencyCodes = ["USD", "EUR", "GBP", "INR", "JPY", "AUD", "CAD", "AED"];
@@ -38,7 +38,7 @@ export const fallbackUsdRates: Record<string, number> = {
 };
 
 export function getCurrency(code: string) {
-  return currencies.find((currency) => currency.code === code) ?? { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" };
+  return currencies.find((currency) => currency.code === code) ?? { code: "USD", name: "US Dollar", symbol: "$", flag: "us" };
 }
 
 export function formatMoney(value: number, code: string) {

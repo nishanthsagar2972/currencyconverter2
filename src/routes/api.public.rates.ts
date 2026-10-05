@@ -5,7 +5,7 @@ export const Route = createFileRoute("/api/public/rates")({
     handlers: {
       GET: async () => {
         try {
-          const response = await fetch("https://api.frankfurter.app/latest?from=USD", {
+          const response = await fetch("https://api.frankfurter.dev/v1/latest?base=USD", {
             headers: { Accept: "application/json" },
           });
           if (!response.ok) return Response.json({ error: "Rates unavailable" }, { status: 502 });
