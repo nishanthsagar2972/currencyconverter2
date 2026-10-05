@@ -38,7 +38,7 @@ export const fallbackUsdRates: Record<string, number> = {
 };
 
 export function getCurrency(code: string) {
-  return currencies.find((currency) => currency.code === code) ?? currencies[0];
+  return currencies.find((currency) => currency.code === code) ?? { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" };
 }
 
 export function formatMoney(value: number, code: string) {

@@ -27,7 +27,7 @@ export async function fetchUsdRates(force = false): Promise<RateSnapshot> {
   }
 
   try {
-    const response = await fetch("https://api.frankfurter.app/latest?from=USD");
+    const response = await fetch("/api/public/rates");
     if (!response.ok) throw new Error("Rate service unavailable");
     const data = (await response.json()) as { rates?: Record<string, number> };
     if (!data.rates) throw new Error("Invalid rate response");
