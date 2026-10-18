@@ -22,21 +22,6 @@ export const currencies: Currency[] = [
 
 export const popularCurrencyCodes = ["USD", "EUR", "GBP", "INR", "JPY", "AUD", "CAD", "AED"];
 
-export const fallbackUsdRates: Record<string, number> = {
-  USD: 1,
-  EUR: 0.86,
-  GBP: 0.75,
-  INR: 88.72,
-  JPY: 147.2,
-  AUD: 1.52,
-  CAD: 1.39,
-  AED: 3.6725,
-  CHF: 0.8,
-  CNY: 7.12,
-  SGD: 1.29,
-  NZD: 1.73,
-};
-
 export function getCurrency(code: string) {
   return currencies.find((currency) => currency.code === code) ?? { code: "USD", name: "US Dollar", symbol: "$", flag: "us" };
 }
