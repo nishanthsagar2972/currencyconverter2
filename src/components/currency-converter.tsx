@@ -10,7 +10,6 @@ import {
   Moon,
   RefreshCw,
   Search,
-  Settings,
   Sparkles,
   Sun,
   Trash2,
@@ -18,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InstallApp } from "@/components/install-app";
 import { cn } from "@/lib/utils";
 import { currencies, formatMoney, formatRate, getCurrency, popularCurrencyCodes } from "@/lib/currency";
 import { convertAmount, fetchUsdRates, getPairRate, type RateSnapshot } from "@/lib/exchange-rates";
@@ -65,7 +65,7 @@ function ThemeToggle() {
 function Header() {
   return (
     <header className="border-b border-border/70 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:h-18 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6 lg:px-8">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:h-18 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-action">
             <CircleDollarSign size={21} strokeWidth={2.4} />
@@ -79,7 +79,7 @@ function Header() {
         </nav>
         <div className="flex shrink-0 items-center justify-end gap-1">
           <ThemeToggle />
-          <Button variant="ghost" className="size-10 px-0" aria-label="Settings"><Settings size={19} /></Button>
+          <InstallApp />
         </div>
       </div>
     </header>
@@ -142,7 +142,7 @@ function CurrencySelector({ label, value, onChange }: { label: string; value: st
         <ChevronDown size={17} className={cn("shrink-0 transition-transform", open && "rotate-180")} />
       </Button>
       {open && (
-        <div className="absolute top-full z-30 mt-2 w-full min-w-64 overflow-hidden rounded-lg border border-border bg-popover p-2 shadow-float">
+        <div className="absolute top-full z-30 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover p-2 shadow-float">
           <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
             <Search size={16} className="shrink-0 text-muted-foreground" />
             <input autoFocus aria-label="Search currencies" placeholder="Search currency" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground" />
@@ -177,17 +177,20 @@ function ConversionResult({ amount, from, to, result, rate }: { amount: number; 
     <div className="mt-6 border-t border-border pt-6 text-center" aria-live="polite">
       <p className="text-sm font-semibold text-muted-foreground">{formatMoney(amount, from)} {from}</p>
       <ArrowDown size={18} className="mx-auto my-2 text-primary" />
-      <p className="text-3xl font-bold text-foreground sm:text-4xl">{formatMoney(result, to)} <span className="text-xl text-muted-foreground">{to}</span></p>
+      <p className="break-words text-3xl font-bold text-foreground sm:text-4xl">{formatMoney(result, to)} <span className="text-xl text-muted-foreground">{to}</span></p>
       <p className="mt-3 text-sm font-semibold text-primary">1 {from} = {formatRate(rate)} {to}</p>
     </div>
   );
 }
 
-function ConverterCard({ snapshot, onConverted }: { snapshot: RateSnapshot; onConverted: (item: Conversion) => void }) {
+function ConverterCard({ snapshot, onConverted }: { snapshot: RateSnapshot | null; onConverted: (item: Conversion) => void }) {
   const [amount, setAmount] = useState("100");
   const [from, setFrom] = useState("USD");
   const [to, setTo] = useState("INR");
-  const [result, setResult] = useState<number | null>(() => convertAmount(100, "USD", "INR", snapshot.rates));
+  const result = useMemo(() => {
+    if (!snapshot) return null;
+    try { return convertAmount(Number(amount), from, to, snapshot.rates); } catch { return null; }
+  }, [amount, from, to, snapshot]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [swapped, setSwapped] = useState(false);
@@ -203,13 +206,13 @@ function ConverterCard({ snapshot, onConverted }: { snapshot: RateSnapshot; onCo
   const convert = () => {
     const validation = validate();
     if (validation) { setError(validation); return; }
+    if (!snapshot) { setError("Connect to the internet to load exchange rates first."); return; }
     setError("");
     setLoading(true);
     window.setTimeout(() => {
       try {
         const numeric = Number(amount);
         const converted = convertAmount(numeric, from, to, snapshot.rates);
-        setResult(converted);
         onConverted({ id: `${Date.now()}-${from}-${to}`, amount: numeric, from, to, result: converted, createdAt: Date.now() });
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Conversion failed. Please try again.");
@@ -225,11 +228,10 @@ function ConverterCard({ snapshot, onConverted }: { snapshot: RateSnapshot; onCo
     setSwapped((current) => !current);
     if (result !== null) {
       setAmount(result.toFixed(2));
-      setResult(Number(amount));
     }
   };
 
-  const rate = getPairRate(from, to, snapshot.rates);
+  const rate = snapshot && result !== null ? getPairRate(from, to, snapshot.rates) : null;
 
   return (
     <section id="converter" className="mx-auto max-w-5xl scroll-mt-8 rounded-xl border border-border/80 bg-card p-5 shadow-card sm:p-8">
@@ -239,15 +241,15 @@ function ConverterCard({ snapshot, onConverted }: { snapshot: RateSnapshot; onCo
         <SwapButton onClick={swap} swapped={swapped} />
         <CurrencySelector label="To currency" value={to} onChange={setTo} />
       </div>
-      <Button onClick={convert} disabled={loading} className="mt-5 h-13 w-full text-base">
+      <Button onClick={convert} disabled={loading || !snapshot} className="mt-5 h-13 w-full text-base">
         {loading ? <><LoaderCircle size={19} className="animate-spin" /> Calculating...</> : <><Sparkles size={18} /> Convert Currency</>}
       </Button>
-      {result !== null && !error && <ConversionResult amount={Number(amount) || 0} from={from} to={to} result={result} rate={rate} />}
+      {result !== null && rate !== null && !error && <ConversionResult amount={Number(amount) || 0} from={from} to={to} result={result} rate={rate} />}
     </section>
   );
 }
 
-function PopularCurrencies({ snapshot, refreshing, onRefresh }: { snapshot: RateSnapshot; refreshing: boolean; onRefresh: () => void }) {
+function PopularCurrencies({ snapshot, refreshing, onRefresh }: { snapshot: RateSnapshot | null; refreshing: boolean; onRefresh: () => void }) {
   return (
     <section id="rates" className="scroll-mt-8 py-12 sm:py-16">
       <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
@@ -260,12 +262,12 @@ function PopularCurrencies({ snapshot, refreshing, onRefresh }: { snapshot: Rate
           return (
             <article key={code} className="rounded-lg border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card">
               <div className="flex items-center justify-between"><CurrencyFlag country={currency.flag} label={`${currency.name} flag`} className="text-2xl" /><TrendingUp size={16} className="text-success" /></div>
-              <div className="mt-4 flex items-end justify-between gap-2"><div className="min-w-0"><h3 className="font-bold">{currency.code}</h3><p className="truncate text-xs text-muted-foreground">{currency.name}</p></div><p className="shrink-0 text-sm font-bold">{formatRate(snapshot.rates[code] ?? 0)}</p></div>
+              <div className="mt-4 flex items-end justify-between gap-2"><div className="min-w-0"><h3 className="font-bold">{currency.code}</h3><p className="truncate text-xs text-muted-foreground">{currency.name}</p></div><p className="shrink-0 text-sm font-bold">{snapshot?.rates[code] ? formatRate(snapshot.rates[code]) : "—"}</p></div>
             </article>
           );
         })}
       </div>
-      <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 size={13} />Rates shown per 1 USD · {snapshot.source === "live" ? "Live market data" : "Last known reference rates"}</p>
+      <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 size={13} />Rates shown per 1 USD · {!snapshot ? "Rates unavailable" : `Rates dated ${snapshot.rateDate} · ${snapshot.source === "live" ? "Latest downloaded data" : "Saved data"}`}</p>
     </section>
   );
 }
@@ -296,26 +298,46 @@ function ConversionHistory({ items, onClear }: { items: Conversion[]; onClear: (
 }
 
 export function CurrencyConverterApp() {
-  const [snapshot, setSnapshot] = useState<RateSnapshot>({ rates: { USD: 1, EUR: 0.86, GBP: 0.75, INR: 88.72, JPY: 147.2, AUD: 1.52, CAD: 1.39, AED: 3.6725 }, updatedAt: Date.now(), source: "fallback" });
-  const [refreshing, setRefreshing] = useState(false);
+  const [snapshot, setSnapshot] = useState<RateSnapshot | null>(null);
+  const [refreshing, setRefreshing] = useState(true);
+  const [offline, setOffline] = useState(false);
+  const [rateError, setRateError] = useState("");
   const [history, setHistory] = useState<Conversion[]>([]);
 
   useEffect(() => {
     try { setHistory(JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as Conversion[]); } catch { setHistory([]); }
-    void fetchUsdRates().then(setSnapshot);
+    let active = true;
+    const load = async (force = false) => {
+      setRefreshing(true);
+      setRateError("");
+      try { const rates = await fetchUsdRates(force); if (active) setSnapshot(rates); }
+      catch (error) { if (active) setRateError(error instanceof Error ? error.message : "Exchange rates are unavailable."); }
+      finally { if (active) setRefreshing(false); }
+    };
+    const connectionChanged = () => { setOffline(!navigator.onLine); void load(navigator.onLine); };
+    setOffline(!navigator.onLine);
+    void load();
+    window.addEventListener("online", connectionChanged);
+    window.addEventListener("offline", connectionChanged);
+    return () => { active = false; window.removeEventListener("online", connectionChanged); window.removeEventListener("offline", connectionChanged); };
   }, []);
 
   const addHistory = (item: Conversion) => {
     setHistory((current) => {
       const next = [item, ...current].slice(0, 8);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* Keep this session usable without storage. */ }
       return next;
     });
   };
 
-  const clearHistory = () => { localStorage.removeItem(HISTORY_KEY); setHistory([]); };
-  const refresh = async () => { setRefreshing(true); setSnapshot(await fetchUsdRates(true)); setRefreshing(false); };
-  const timestamp = useMemo(() => Date.now() - snapshot.updatedAt < 60000 ? "just now" : new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), [snapshot.updatedAt]);
+  const clearHistory = () => { try { localStorage.removeItem(HISTORY_KEY); } catch { /* Storage unavailable. */ } setHistory([]); };
+  const refresh = async () => {
+    setRefreshing(true); setRateError("");
+    try { setSnapshot(await fetchUsdRates(true)); }
+    catch (error) { setRateError(error instanceof Error ? error.message : "Exchange rates are unavailable."); }
+    finally { setRefreshing(false); }
+  };
+  const timestamp = snapshot ? new Date(snapshot.updatedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -324,12 +346,16 @@ export function CurrencyConverterApp() {
         <div className="bg-hero-wash px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto mb-8 max-w-2xl text-center">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary"><span className="size-1.5 rounded-full bg-success" /> Live exchange rates</div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary"><span className={cn("size-1.5 rounded-full", snapshot && !offline && snapshot.source === "live" ? "bg-success" : "bg-muted-foreground")} /> {offline ? "Offline" : refreshing ? "Updating rates" : snapshot?.source === "live" ? "Latest exchange rates" : snapshot ? "Saved exchange rates" : "Rates unavailable"}</div>
               <h1 className="text-4xl font-bold leading-tight sm:text-5xl">Convert currencies instantly</h1>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">Fast, simple and accurate currency conversion at your fingertips.</p>
             </div>
             <ConverterCard snapshot={snapshot} onConverted={addHistory} />
-            <p className="mt-3 text-center text-xs text-muted-foreground">Exchange rate updated {timestamp}</p>
+            <div className="mt-3 text-center text-xs text-muted-foreground" role="status" aria-live="polite">
+              {refreshing && <p className="flex items-center justify-center gap-2"><LoaderCircle size={14} className="animate-spin" /> Downloading exchange rates…</p>}
+              {rateError && <p className="text-destructive">{rateError}</p>}
+              {snapshot && <p>{offline ? "Offline · Using saved rates" : snapshot.source === "cached" ? "Using saved rates" : "Rates downloaded"} · {timestamp} · Rate date {snapshot.rateDate}</p>}
+            </div>
           </div>
         </div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
