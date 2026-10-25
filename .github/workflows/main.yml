@@ -53,7 +53,7 @@ jobs:
           else
             echo "ERROR: Built index.html was not found."
             exit 1
-          fi'
+          fi
 
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/cli @capacitor/android
