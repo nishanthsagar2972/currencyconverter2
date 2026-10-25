@@ -27,6 +27,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+
       - name: Install Android SDK packages
         run: |
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
@@ -45,8 +48,11 @@ jobs:
           cat package.json
           echo "=== Vite configuration ==="
           cat vite.config.ts
-          echo "=== Built HTML files ==="
-          find dist build out .output -maxdepth 5 -type f -name "index.html" 2>/dev/null || true
+          echo "=== HTML files ==="
+          find . -maxdepth 5 -type f -name "index.html" \
+            -not -path "./node_modules/*" \
+            -not -path "./.git/*" \
+            -not -path "./android/*" || true
           echo "=== Dist files ==="
           find dist -maxdepth 3 -type f 2>/dev/null | head -100 || true
           echo "=== Output files ==="
@@ -62,7 +68,7 @@ jobs:
             echo "WEB_DIR=out" >> "$GITHUB_ENV"
           else
             echo "ERROR: No static index.html was found."
-            echo "This project may require static export configuration."
+            echo "Check the Diagnose build output step in the Actions logs."
             exit 1
           fi
 
