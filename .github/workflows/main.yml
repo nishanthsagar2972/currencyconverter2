@@ -38,27 +38,31 @@ jobs:
       
       - name: Find website output
         run: |
-          echo "Current directory:"
-          pwd
-          echo "Project files:"
+          echo "Checking build directories..."
           ls -la
-          echo "Package configuration:"
-          cat package.json
-          echo "Build output directories:"
           find . -maxdepth 5 -type f -name index.html \
             -not -path './node_modules/*' \
             -not -path './.git/*' \
-            -not -path './android/*' || true
-          echo "Available directories:"
-          find . -maxdepth 3 -type d \
-            -not -path './node_modules*' \
-            -not -path './.git*'
+            -not -path './android/*'
+          if [ -f dist/index.html ]; then
+            echo "WEB_DIR=dist" >> "$GITHUB_ENV"
+          elif [ -f build/index.html ]; then
+            echo "WEB_DIR=build" >> "$GITHUB_ENV"
+          elif [ -f out/index.html ]; then
+            echo "WEB_DIR=out" >> "$GITHUB_ENV"
+          else
+            echo "ERROR: Built index.html was not found."
+            exit 1
+          fi'
 
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Create Capacitor configuration
         run: |
+          echo "Using web directory: $WEB_DIR"
+          test -n "$WEB_DIR"
+          test -f "$WEB_DIR/index.html"
           cat > capacitor.config.json <<EOF
           {
             "appId": "com.currencyconverter.app",
