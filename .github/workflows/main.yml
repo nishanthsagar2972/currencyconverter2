@@ -26,8 +26,10 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install project dependencies
         run: bun install
@@ -35,15 +37,23 @@ jobs:
       - name: Build website
         run: bun run build
 
-      
+      - name: Diagnose build output
+        run: |
+          echo "=== Root files ==="
+          ls -la
+          echo "=== package.json ==="
+          cat package.json
+          echo "=== Vite configuration ==="
+          cat vite.config.ts
+          echo "=== Built HTML files ==="
+          find dist build out .output -maxdepth 5 -type f -name "index.html" 2>/dev/null || true
+          echo "=== Dist files ==="
+          find dist -maxdepth 3 -type f 2>/dev/null | head -100 || true
+          echo "=== Output files ==="
+          find .output -maxdepth 4 -type f 2>/dev/null | head -100 || true
+
       - name: Find website output
         run: |
-          echo "Checking build directories..."
-          ls -la
-          find . -maxdepth 5 -type f -name index.html \
-            -not -path './node_modules/*' \
-            -not -path './.git/*' \
-            -not -path './android/*'
           if [ -f dist/index.html ]; then
             echo "WEB_DIR=dist" >> "$GITHUB_ENV"
           elif [ -f build/index.html ]; then
@@ -51,18 +61,18 @@ jobs:
           elif [ -f out/index.html ]; then
             echo "WEB_DIR=out" >> "$GITHUB_ENV"
           else
-            echo "ERROR: Built index.html was not found."
+            echo "ERROR: No static index.html was found."
+            echo "This project may require static export configuration."
             exit 1
           fi
+
+          echo "Website directory: $WEB_DIR"
 
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Create Capacitor configuration
         run: |
-          echo "Using web directory: $WEB_DIR"
-          test -n "$WEB_DIR"
-          test -f "$WEB_DIR/index.html"
           cat > capacitor.config.json <<EOF
           {
             "appId": "com.currencyconverter.app",
@@ -70,6 +80,8 @@ jobs:
             "webDir": "$WEB_DIR"
           }
           EOF
+
+          cat capacitor.config.json
 
       - name: Add Android platform
         run: bunx cap add android
@@ -90,3 +102,4 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+
