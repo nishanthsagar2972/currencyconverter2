@@ -10,6 +10,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout repository
@@ -24,63 +27,63 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
+      - name: Locate Android SDK tools
+        shell: bash
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          yes | sdkmanager --licenses
 
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
 
-      - name: Install project dependencies
-        run: bun install
-
-      - name: Build website
-        run: bun run build
-
-      - name: Diagnose build output
-        run: |
-          echo "=== Root files ==="
-          ls -la
-          echo "=== package.json ==="
-          cat package.json
-          echo "=== HTML files ==="
-          find . -maxdepth 5 -type f -name "index.html" \
-            -not -path "./node_modules/*" \
-            -not -path "./.git/*" \
-            -not -path "./android/*" || true
-          echo "=== Dist files ==="
-          find dist -maxdepth 3 -type f 2>/dev/null | head -100 || true
-          echo "=== Output files ==="
-          find .output -maxdepth 4 -type f 2>/dev/null | head -100 || true
-
-      - name: Find website output
-        run: |
-          if [ -f dist/index.html ]; then
-            echo "WEB_DIR=dist" >> "$GITHUB_ENV"
-          elif [ -f build/index.html ]; then
-            echo "WEB_DIR=build" >> "$GITHUB_ENV"
-          elif [ -f out/index.html ]; then
-            echo "WEB_DIR=out" >> "$GITHUB_ENV"
-          else
-            echo "ERROR: No static index.html was found."
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager was not found in $ANDROID_HOME"
+            find "$ANDROID_HOME" -maxdepth 4 -type f -name sdkmanager 2>/dev/null || true
             exit 1
           fi
 
-          echo "Website directory: $WEB_DIR"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "Found sdkmanager: $SDKMANAGER"
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          yes | "$SDKMANAGER" --licenses || true
+
+      - name: Install Android SDK packages
+        run: |
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Capacitor
-        run: bun add @capacitor/core @capacitor/cli @capacitor/android
+        run: |
+          bun add @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Create website folder
+        run: |
+          mkdir -p www
+          cat > www/index.html <<'EOF'
+          <!doctype html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Currency Converter</title>
+            </head>
+            <body>
+              <p>Loading Currency Converter...</p>
+            </body>
+          </html>
+          EOF
 
       - name: Create Capacitor configuration
         run: |
-          cat > capacitor.config.json <<EOF
+          cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.currencyconverter.app",
             "appName": "Currency Converter",
-            "webDir": "$WEB_DIR"
+            "webDir": "www",
+            "server": {
+              "url": "https://currencyconverter2.lovable.app",
+              "cleartext": false
+            }
           }
           EOF
 
