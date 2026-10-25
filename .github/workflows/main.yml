@@ -35,20 +35,24 @@ jobs:
       - name: Build website
         run: bun run build
 
+      
       - name: Find website output
         run: |
-          echo "Checking build output..."
-          find . -maxdepth 4 -name index.html -not -path './node_modules/*' -not -path './android/*'
-          if [ -f dist/index.html ]; then
-            echo "WEB_DIR=dist" >> "$GITHUB_ENV"
-          elif [ -f build/index.html ]; then
-            echo "WEB_DIR=build" >> "$GITHUB_ENV"
-          elif [ -f out/index.html ]; then
-            echo "WEB_DIR=out" >> "$GITHUB_ENV"
-          else
-            echo "ERROR: Could not find the built index.html"
-            exit 1
-          fi
+          echo "Current directory:"
+          pwd
+          echo "Project files:"
+          ls -la
+          echo "Package configuration:"
+          cat package.json
+          echo "Build output directories:"
+          find . -maxdepth 5 -type f -name index.html \
+            -not -path './node_modules/*' \
+            -not -path './.git/*' \
+            -not -path './android/*' || true
+          echo "Available directories:"
+          find . -maxdepth 3 -type d \
+            -not -path './node_modules*' \
+            -not -path './.git*'
 
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/cli @capacitor/android
