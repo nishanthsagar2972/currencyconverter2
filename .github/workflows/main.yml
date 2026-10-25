@@ -25,10 +25,10 @@ jobs:
           java-version: "17"
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses
 
       - name: Install Android SDK packages
         run: |
@@ -46,8 +46,6 @@ jobs:
           ls -la
           echo "=== package.json ==="
           cat package.json
-          echo "=== Vite configuration ==="
-          cat vite.config.ts
           echo "=== HTML files ==="
           find . -maxdepth 5 -type f -name "index.html" \
             -not -path "./node_modules/*" \
@@ -68,7 +66,6 @@ jobs:
             echo "WEB_DIR=out" >> "$GITHUB_ENV"
           else
             echo "ERROR: No static index.html was found."
-            echo "Check the Diagnose build output step in the Actions logs."
             exit 1
           fi
 
@@ -86,8 +83,6 @@ jobs:
             "webDir": "$WEB_DIR"
           }
           EOF
-
-          cat capacitor.config.json
 
       - name: Add Android platform
         run: bunx cap add android
